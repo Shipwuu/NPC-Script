@@ -123,6 +123,7 @@ toggleButton.Size = UDim2.new(0, 80, 0, 30)
 toggleButton.Position = UDim2.new(1, -120, 0, 10)
 toggleButton.TextSize = 18
 toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
 toggleButton.Parent = screenGui
 
 -- Add UICorner for rounded corners
@@ -130,19 +131,28 @@ local toggleButtonCorner = Instance.new("UICorner")
 toggleButtonCorner.CornerRadius = UDim.new(0, 5)
 toggleButtonCorner.Parent = toggleButton
 
--- Add thin white UIStroke
+-- Add thin white UIStroke for the button frame
 local toggleButtonStroke = Instance.new("UIStroke")
 toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
 toggleButtonStroke.Thickness = 2
 toggleButtonStroke.Parent = toggleButton
 
--- Add UIGradient to UIStroke
+-- Add UIGradient to UIStroke for a gradient effect
 local toggleButtonGradient = Instance.new("UIGradient")
 toggleButtonGradient.Color = ColorSequence.new{
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
     ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
 }
 toggleButtonGradient.Parent = toggleButtonStroke
+
+-- Add a semi-transparent to non-transparent UIGradient for the button frame
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),  -- Non-transparent white at the top
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))  -- Semi-transparent black at the bottom
+}
+frameGradient.Rotation = 90  -- Horizontal gradient
+frameGradient.Parent = toggleButton
 
 -- Function to update button appearance based on ESP state
 local function updateButton()
