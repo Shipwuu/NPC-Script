@@ -2,7 +2,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local COREGUI = game:GetService("CoreGui")
-local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
@@ -12,6 +11,7 @@ local friends = {}
 local currentSpectateIndex = 1
 local players = {}  -- List of players to spectate
 local spectateGuiVisible = true
+local spectateGui
 
 -- Fetch friends list
 local function updateFriendsList()
@@ -84,7 +84,7 @@ local function ESP(model)
                 TextLabel.Font = Enum.Font.GothamBold
                 TextLabel.TextSize = 18
 
-                -- Set TextColor3 to Red for Sheriffs, Blue for all others
+                -- Correct Sheriff Detection: Red for Sheriff, Blue for others
                 TextLabel.TextColor3 = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(0, 162, 255)
                 TextLabel.TextStrokeTransparency = 0.5
                 TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- Black outline
@@ -126,7 +126,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Spectate functionality
+-- Function to spectate players
 local function updateSpectateLabel(player)
     if player then
         playerNameLabel.Text = player.DisplayName .. " (" .. player.Name .. ")"
@@ -158,8 +158,12 @@ local function spectate(player)
 end
 
 local function createSpectateUI()
+    if spectateGui then
+        spectateGui:Destroy() -- Destroy any existing GUI to prevent duplication
+    end
+
     -- Create a ScreenGui for spectate functionality
-    local spectateGui = Instance.new("ScreenGui")
+    spectateGui = Instance.new("ScreenGui")
     spectateGui.Name = "SpectateGui"
     spectateGui.ResetOnSpawn = true
     spectateGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
@@ -378,7 +382,9 @@ toggleButton.MouseButton1Click:Connect(function()
                 v:Destroy()
             end
         end
-        spectateGui:Destroy()  -- Destroy the spectate GUI when ESP is disabled
+        if spectateGui then
+            spectateGui:Destroy()  -- Destroy the spectate GUI when ESP is disabled
+        end
     end
 end)
 
