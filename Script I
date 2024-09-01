@@ -1,0 +1,402 @@
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local COREGUI = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- Variables
+local ESPenabled = false
+local friends = {}
+local currentSpectateIndex = 1
+local players = {}  -- List of players to spectate
+local spectateGuiVisible = true
+
+-- Fetch friends list
+local function updateFriendsList()
+    friends = {}
+    local success, result = pcall(function()
+        return Players:GetFriendsAsync(LocalPlayer.UserId)
+    end)
+    if success then
+        for _, friend in pairs(result:GetCurrentPage()) do
+            friends[friend.Username] = true
+        end
+    else
+        warn("Failed to fetch friends list:", result)
+    end
+end
+
+updateFriendsList()
+
+-- Utility Functions
+local function round(num, numDecimalPlaces)
+    local mult = 10^(numDecimalPlaces or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
+
+local function getRoot(char)
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+end
+
+local function isFriend(plr)
+    return friends[plr.Name] or false
+end
+
+local function isSheriff(model)
+    return model:FindFirstChild("GunSource") ~= nil
+end
+
+local function ESP(model)
+    task.spawn(function()
+        local playerName = model.Name
+        
+        -- Check if ESP already exists and clean up if it does
+        for i, v in pairs(COREGUI:GetChildren()) do
+            if v.Name == playerName .. '_ESP' then
+                v:Destroy()
+            end
+        end
+        wait()
+
+        -- Detect real players using the TradeProximityPrompt
+        if model:FindFirstChild("HumanoidRootPart") and model.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") then
+            local ESPholder = Instance.new("Folder")
+            ESPholder.Name = playerName .. '_ESP'
+            ESPholder.Parent = COREGUI
+
+            local humanoidRootPart = getRoot(model)
+            if humanoidRootPart and model:FindFirstChildOfClass("Humanoid") then
+                local BillboardGui = Instance.new("BillboardGui")
+                BillboardGui.Adornee = humanoidRootPart
+                BillboardGui.Name = playerName
+                BillboardGui.Parent = ESPholder
+                BillboardGui.Size = UDim2.new(0, 150, 0, 50)
+                BillboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
+                BillboardGui.AlwaysOnTop = true
+
+                local TextLabel = Instance.new("TextLabel")
+                TextLabel.Parent = BillboardGui
+                TextLabel.BackgroundTransparency = 1
+                TextLabel.Position = UDim2.new(0, 0, 0, 0)
+                TextLabel.Size = UDim2.new(0, 150, 0, 25)
+                TextLabel.Font = Enum.Font.GothamBold
+                TextLabel.TextSize = 18
+
+                -- Set TextColor3 to Red for Sheriffs, Blue for all others
+                TextLabel.TextColor3 = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(0, 162, 255)
+                TextLabel.TextStrokeTransparency = 0.5
+                TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- Black outline
+                TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+                TextLabel.Text = playerName
+
+                local espLoopFunc
+                local function espLoop()
+                    if COREGUI:FindFirstChild(playerName .. '_ESP') then
+                        if model and getRoot(model) then
+                            local pos = math.floor((getRoot(LocalPlayer.Character).Position - getRoot(model).Position).magnitude)
+                            TextLabel.Text = playerName .. " (" .. pos .. " studs)"
+                        end
+                    else
+                        espLoopFunc:Disconnect()
+                    end
+                end
+                espLoopFunc = RunService.RenderStepped:Connect(espLoop)
+            end
+        end
+    end)
+end
+
+-- Function to update ESP dynamically by looping through workspace
+local function updateESP()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:FindFirstChild("HumanoidRootPart") and obj.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") then
+            if not COREGUI:FindFirstChild(obj.Name .. '_ESP') then
+                ESP(obj)
+            end
+        end
+    end
+end
+
+-- Run a continuous loop to detect players dynamically
+RunService.RenderStepped:Connect(function()
+    if ESPenabled then
+        updateESP()
+    end
+end)
+
+-- Spectate functionality
+local function updateSpectateLabel(player)
+    if player then
+        playerNameLabel.Text = player.DisplayName .. " (" .. player.Name .. ")"
+    else
+        playerNameLabel.Text = ""
+    end
+end
+
+local function findPlayerByName(name)
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player.Name:lower():find(name:lower(), 1, true) or player.DisplayName:lower():find(name:lower(), 1, true) then
+            return player
+        end
+    end
+    return nil
+end
+
+local function resetCamera()
+    workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    updateSpectateLabel(LocalPlayer) -- Update the label to show the local player
+end
+
+local function spectate(player)
+    local character = player.Character
+    if character then
+        workspace.CurrentCamera.CameraSubject = character:FindFirstChildWhichIsA("Humanoid")
+    end
+    updateSpectateLabel(player)
+end
+
+local function createSpectateUI()
+    -- Create a ScreenGui for spectate functionality
+    local spectateGui = Instance.new("ScreenGui")
+    spectateGui.Name = "SpectateGui"
+    spectateGui.ResetOnSpawn = true
+    spectateGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Create a Frame to hold the spectate buttons and search functionality
+    local frame = Instance.new("Frame")
+    frame.Name = "ButtonFrame"
+    frame.Size = UDim2.new(0.2, 0, 0.15, 0)
+    frame.Position = UDim2.new(0.4, 0, 0.8, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundTransparency = 0.3
+    frame.Parent = spectateGui
+
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0.1, 0)
+    frameCorner.Parent = frame
+
+    local frameOutline = Instance.new("UIStroke")
+    frameOutline.Color = Color3.fromRGB(255, 255, 255)
+    frameOutline.Thickness = 2
+    frameOutline.Transparency = 0.5
+    frameOutline.Parent = frame
+
+    -- Draggable frame
+    local UserInputService = game:GetService("UserInputService")
+    local dragging, dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    -- Create a TextLabel to display the player's name
+    local playerNameLabel = Instance.new("TextLabel")
+    playerNameLabel.Name = "PlayerNameLabel"
+    playerNameLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    playerNameLabel.Position = UDim2.new(0, 0, -0.3, 0)
+    playerNameLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    playerNameLabel.BackgroundTransparency = 0.3
+    playerNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playerNameLabel.TextScaled = true
+    playerNameLabel.Font = Enum.Font.GothamBold
+    playerNameLabel.Text = ""
+    playerNameLabel.Parent = frame
+
+    local playerNameLabelCorner = Instance.new("UICorner")
+    playerNameLabelCorner.CornerRadius = UDim.new(1, 0)
+    playerNameLabelCorner.Parent = playerNameLabel
+
+    -- Create a TextBox for name searching
+    local searchBox = Instance.new("TextBox")
+    searchBox.Name = "SearchBox"
+    searchBox.Size = UDim2.new(0.7, 0, 0.2, 0)
+    searchBox.Position = UDim2.new(0.1, 0, 0.6, 0)
+    searchBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    searchBox.BackgroundTransparency = 0.3
+    searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    searchBox.TextScaled = true
+    searchBox.Font = Enum.Font.GothamBold
+    searchBox.PlaceholderText = "Enter player name"
+    searchBox.Parent = frame
+
+    local searchBoxCorner = Instance.new("UICorner")
+    searchBoxCorner.CornerRadius = UDim.new(0.1, 0)
+    searchBoxCorner.Parent = searchBox
+
+    -- Create buttons
+    local function createButton(name, text, position, size, textColor)
+        local button = Instance.new("TextButton")
+        button.Name = name
+        button.Size = size or UDim2.new(0.2, 0, 0.4, 0)
+        button.Position = position
+        button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        button.BackgroundTransparency = 0.3
+        button.Text = text
+        button.TextColor3 = textColor or Color3.fromRGB(255, 255, 255)
+        button.TextScaled = true
+        button.Font = Enum.Font.GothamBold
+        button.Parent = frame
+
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0.1, 0)
+        buttonCorner.Parent = button
+
+        return button
+    end
+
+    local previousButton = createButton("PreviousButton", "<", UDim2.new(0.05, 0, 0.1, 0))
+    local destroyButton = createButton("DestroyButton", "X", UDim2.new(0.4, 0, 0.1, 0))
+    local nextButton = createButton("NextButton", ">", UDim2.new(0.75, 0, 0.1, 0))
+
+    -- Spectate button functionality
+    previousButton.MouseButton1Click:Connect(function()
+        currentSpectateIndex = currentSpectateIndex - 1
+        if currentSpectateIndex < 1 then
+            currentSpectateIndex = #players
+        end
+        spectate(players[currentSpectateIndex])
+    end)
+
+    nextButton.MouseButton1Click:Connect(function()
+        currentSpectateIndex = currentSpectateIndex + 1
+        if currentSpectateIndex > #players then
+            currentSpectateIndex = 1
+        end
+        spectate(players[currentSpectateIndex])
+    end)
+
+    destroyButton.MouseButton1Click:Connect(function()
+        resetCamera()
+        spectateGui:Destroy()
+    end)
+
+    searchBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local playerName = searchBox.Text
+            local player = findPlayerByName(playerName)
+            if player then
+                spectate(player)
+            else
+                playerNameLabel.Text = "Player not found"
+            end
+        end
+    end)
+
+    -- Toggle button for spectate UI
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0.1, 0, 0.05, 0)
+    toggleButton.Position = UDim2.new(0.65, 0, 0.92, 0)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    toggleButton.BackgroundTransparency = 0.3
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.Text = "Close"
+    toggleButton.TextSize = 14
+    toggleButton.TextScaled = true
+    toggleButton.Font = Enum.Font.GothamBold
+    toggleButton.Parent = spectateGui
+
+    local toggleButtonCorner = Instance.new("UICorner")
+    toggleButtonCorner.CornerRadius = UDim.new(0.5, 0)
+    toggleButtonCorner.Parent = toggleButton
+
+    toggleButton.MouseButton1Click:Connect(function()
+        spectateGuiVisible = not spectateGuiVisible
+        frame.Visible = spectateGuiVisible
+        if spectateGuiVisible then
+            toggleButton.Text = "Close"
+        else
+            toggleButton.Text = "Open"
+        end
+    end)
+
+    LocalPlayer.CharacterAdded:Connect(function()
+        spectateGuiVisible = true
+        frame.Visible = spectateGuiVisible
+    end)
+
+    LocalPlayer.CharacterRemoving:Connect(function()
+        toggleButton:Destroy()
+        spectateGui:Destroy()
+    end)
+end
+
+-- UI elements to control the ESP toggle
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 30, 0, 30)
+toggleButton.Position = UDim2.new(1, -1050, 0, 6.5)
+toggleButton.Text = "ESP"
+toggleButton.TextSize = 18
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+toggleButton.BackgroundTransparency = 0.5
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = screenGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    ESPenabled = not ESPenabled
+    if ESPenabled then
+        updateFriendsList()
+        createSpectateUI()  -- Create the spectate UI when ESP is enabled
+        players = Players:GetPlayers()  -- Update players list
+    else
+        for i, v in pairs(COREGUI:GetChildren()) do
+            if v.Name:find('_ESP') then
+                v:Destroy()
+            end
+        end
+        spectateGui:Destroy()  -- Destroy the spectate GUI when ESP is disabled
+    end
+end)
+
+-- Ensure players list is updated when new players join
+Players.PlayerAdded:Connect(function()
+    players = Players:GetPlayers()
+end)
+
+-- Track player leaving and update spectate label accordingly
+Players.PlayerRemoving:Connect(function(player)
+    if player == players[currentSpectateIndex] then
+        currentSpectateIndex = currentSpectateIndex - 1
+        if currentSpectateIndex < 1 then
+            currentSpectateIndex = #players
+        end
+        spectate(players[currentSpectateIndex])
+    end
+    players = Players:GetPlayers()  -- Update players list
+end)
+
+print("ESP and Spectate script initialized.")
