@@ -1,1 +1,2 @@
-None
+workspace:GetChildren()[15].HumanoidRootPart.PathfindingModifier
+workspace.belerbeler123.HumanoidRootPart.TradeProximityPrompt
