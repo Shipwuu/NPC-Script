@@ -71,9 +71,9 @@ local function ESP(model)
                 TextLabel.TextSize = 18
 
                 -- Correct Sheriff Detection: Red for Sheriff, Blue for others
-                TextLabel.TextColor3 = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(0, 162, 255)
+                TextLabel.TextColor3 = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(97, 94, 252)
                 TextLabel.TextStrokeTransparency = 0.5
-                TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)  -- Black outline
+                TextLabel.TextStrokeColor3 = Color3.fromRGB(209, 216, 197)  -- Black outline
                 TextLabel.TextYAlignment = Enum.TextYAlignment.Top
                 TextLabel.Text = playerName
 
@@ -119,8 +119,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 80, 0, 30)
-toggleButton.Position = UDim2.new(1, -120, 0, 10)
+toggleButton.Size = UDim2.new(0, 90, 0, 40)
+toggleButton.Position = UDim2.new(1, -350, 0, 10)
 toggleButton.TextSize = 18
 toggleButton.Font = Enum.Font.GothamBold
 toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
@@ -134,7 +134,7 @@ toggleButtonCorner.Parent = toggleButton
 -- Add thin white UIStroke for the button frame
 local toggleButtonStroke = Instance.new("UIStroke")
 toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
-toggleButtonStroke.Thickness = 2
+toggleButtonStroke.Thickness = 1
 toggleButtonStroke.Parent = toggleButton
 
 -- Add UIGradient to UIStroke for a gradient effect
@@ -148,8 +148,8 @@ toggleButtonGradient.Parent = toggleButtonStroke
 -- Add a semi-transparent to non-transparent UIGradient for the button frame
 local frameGradient = Instance.new("UIGradient")
 frameGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),  -- Non-transparent white at the top
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))  -- Semi-transparent black at the bottom
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(152, 238, 204)),  -- Non-transparent white at the top
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 224, 238))  -- Semi-transparent black at the bottom
 }
 frameGradient.Rotation = 90  -- Horizontal gradient
 frameGradient.Parent = toggleButton
@@ -159,11 +159,11 @@ local function updateButton()
     if ESPenabled then
         toggleButton.Text = "ESP ON"
         toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green background
-        toggleButton.BackgroundTransparency = 0.5  -- Semi-transparent background
+        toggleButton.BackgroundTransparency = 0.9  -- Semi-transparent background
     else
         toggleButton.Text = "ESP OFF"
         toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black background
-        toggleButton.BackgroundTransparency = 0.5  -- Semi-transparent background
+        toggleButton.BackgroundTransparency = 0.9  -- Semi-transparent background
     end
 end
 
