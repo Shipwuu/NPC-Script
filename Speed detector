@@ -1,0 +1,71 @@
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+-- Function to create BillboardGui to display speed
+local function createSpeedDisplay(character)
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "SpeedDisplayGui"
+    billboardGui.Size = UDim2.new(0, 100, 0, 50) -- Adjust size as needed
+    billboardGui.AlwaysOnTop = true
+    billboardGui.StudsOffset = Vector3.new(0, 3, 0) -- Position above the player's head
+    billboardGui.Parent = humanoidRootPart
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.new(1, 1, 1) -- White text color
+    textLabel.TextStrokeTransparency = 0 -- Fully opaque text stroke
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0) -- Black text stroke
+    textLabel.Text = "Speed: 0"
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextScaled = true
+    textLabel.Parent = billboardGui
+
+    return textLabel
+end
+
+-- Function to update speed display for all players
+local function updateSpeedDisplays()
+    for _, player in pairs(Players:GetPlayers()) do
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local humanoidRootPart = character.HumanoidRootPart
+            local speed = humanoidRootPart.Velocity.Magnitude -- Calculate speed using velocity
+            
+            -- Find existing BillboardGui or create a new one
+            local speedDisplayGui = humanoidRootPart:FindFirstChild("SpeedDisplayGui")
+            if not speedDisplayGui then
+                local textLabel = createSpeedDisplay(character)
+                textLabel.Text = string.format("Speed: %.2f", speed) -- Update with initial speed
+            else
+                local textLabel = speedDisplayGui:FindFirstChildOfClass("TextLabel")
+                if textLabel then
+                    textLabel.Text = string.format("Speed: %.2f", speed) -- Update speed display
+                end
+            end
+        end
+    end
+end
+
+-- Connect function to update speed display every frame
+RunService.RenderStepped:Connect(updateSpeedDisplays)
+
+-- Update speed display when a new player joins
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        createSpeedDisplay(character)
+    end)
+end)
+
+-- Initial setup for players already in the game
+for _, player in pairs(Players:GetPlayers()) do
+    if player.Character then
+        createSpeedDisplay(player.Character)
+    end
+    player.CharacterAdded:Connect(function(character)
+        createSpeedDisplay(character)
+    end)
+end
