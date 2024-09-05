@@ -49,7 +49,7 @@ local function createSecondToggleButton()
     toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     toggleButton.BackgroundTransparency = 1
     toggleButton.BorderSizePixel = 0
-    toggleButton.Text = "🔴"
+    toggleButton.Text = "⭕"
     toggleButton.TextTransparency = 0.5
     toggleButton.Font = Enum.Font.SourceSansBold
     toggleButton.TextScaled = true
@@ -118,26 +118,27 @@ secondToggleButton.MouseButton1Click:Connect(function()
         secondToggleButton.Text = "🔵"
     else
         secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Black when off
-        secondToggleButton.Text = "🔴"
+        secondToggleButton.Text = "⭕"
     end
     updateSecondButtonSpeed() -- Update speed based on second button state
 end)
 
--- Make both buttons draggable on all devices
-local dragging = false
-local dragInput, mousePos, framePos
-
-local function updateInput(input, button)
-    local delta = input.Position - mousePos
-    button.Position = UDim2.new(
-        framePos.X.Scale,
-        framePos.X.Offset + delta.X,
-        framePos.Y.Scale,
-        framePos.Y.Offset + delta.Y
-    )
-end
+-- Independent Dragging for First and Second Buttons
 
 local function makeButtonDraggable(button)
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    local function updateInput(input)
+        local delta = input.Position - mousePos
+        button.Position = UDim2.new(
+            framePos.X.Scale,
+            framePos.X.Offset + delta.X,
+            framePos.Y.Scale,
+            framePos.Y.Offset + delta.Y
+        )
+    end
+
     button.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
@@ -160,11 +161,12 @@ local function makeButtonDraggable(button)
 
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input == dragInput then
-            updateInput(input, button)
+            updateInput(input)
         end
     end)
 end
 
+-- Make both buttons independently draggable
 makeButtonDraggable(firstToggleButton)
 makeButtonDraggable(secondToggleButton)
 
@@ -178,7 +180,7 @@ local function resetScript()
             firstToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             firstToggleButton.Text = "⚫"
             secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            secondToggleButton.Text = "🔴"
+            secondToggleButton.Text = "⭕"
             setPlayerSpeed() -- Reset the speed to default
         end)
     end)
