@@ -1,0 +1,187 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Player and GUI setup
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create the First Button (Speed Toggle 1)
+local function createFirstToggleButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "FirstSpeedToggleGui"
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = "FirstSpeedToggleButton"
+    toggleButton.Size = UDim2.new(0, 80, 0, 80)
+    toggleButton.Position = UDim2.new(0.9, 0, 0.5, -120) -- Positioned higher on the screen
+    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = "⚫"
+    toggleButton.TextTransparency = 0.5
+    toggleButton.Font = Enum.Font.SourceSansBold
+    toggleButton.TextScaled = true
+    toggleButton.Parent = screenGui
+
+    -- Make the button circular
+    local uICorner = Instance.new("UICorner")
+    uICorner.CornerRadius = UDim.new(1, 0)
+    uICorner.Parent = toggleButton
+
+    return toggleButton
+end
+
+-- Create the Second Button (Speed Toggle 2)
+local function createSecondToggleButton()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "SecondSpeedToggleGui"
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = "SecondSpeedToggleButton"
+    toggleButton.Size = UDim2.new(0, 80, 0, 80)
+    toggleButton.Position = UDim2.new(0.9, 0, 0.5, -40) -- Positioned below the first button
+    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.BorderSizePixel = 0
+    toggleButton.Text = "🔴"
+    toggleButton.TextTransparency = 0.5
+    toggleButton.Font = Enum.Font.SourceSansBold
+    toggleButton.TextScaled = true
+    toggleButton.Parent = screenGui
+
+    -- Make the button circular
+    local uICorner = Instance.new("UICorner")
+    uICorner.CornerRadius = UDim.new(1, 0)
+    uICorner.Parent = toggleButton
+
+    return toggleButton
+end
+
+-- Manage Speed Based on Both Button States
+local firstToggleOn = false
+local secondToggleOn = false
+
+-- Function to change player speed
+local function setPlayerSpeed()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        if secondToggleOn then
+            humanoid.WalkSpeed = 21 -- Second button on: priority speed is 21
+        elseif not secondToggleOn and firstToggleOn then
+            humanoid.WalkSpeed = 17 -- First button on, second button off: speed is 17
+        elseif not secondToggleOn and not firstToggleOn then
+            humanoid.WalkSpeed = 7.8 -- Both buttons off: speed is 7.8
+        end
+    end
+end
+
+-- Update speed for second button's "off" state
+local function updateSecondButtonSpeed()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid and secondToggleOn then
+        humanoid.WalkSpeed = 21 -- Speed is 21 when second button is on
+    elseif humanoid and not secondToggleOn then
+        humanoid.WalkSpeed = 11 -- Speed is 11 when second button is off
+    end
+end
+
+-- First Button Functionality
+local firstToggleButton = createFirstToggleButton()
+firstToggleButton.MouseButton1Click:Connect(function()
+    firstToggleOn = not firstToggleOn -- Toggle state
+    if firstToggleOn then
+        firstToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow when on
+        firstToggleButton.Text = "🟡"
+    else
+        firstToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Black when off
+        firstToggleButton.Text = "⚫"
+    end
+    setPlayerSpeed() -- Update speed based on the new state
+end)
+
+-- Second Button Functionality
+local secondToggleButton = createSecondToggleButton()
+secondToggleButton.MouseButton1Click:Connect(function()
+    secondToggleOn = not secondToggleOn -- Toggle state
+    if secondToggleOn then
+        secondToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow when on
+        secondToggleButton.Text = "🔵"
+    else
+        secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Black when off
+        secondToggleButton.Text = "🔴"
+    end
+    updateSecondButtonSpeed() -- Update speed based on second button state
+end)
+
+-- Make both buttons draggable on all devices
+local dragging = false
+local dragInput, mousePos, framePos
+
+local function updateInput(input, button)
+    local delta = input.Position - mousePos
+    button.Position = UDim2.new(
+        framePos.X.Scale,
+        framePos.X.Offset + delta.X,
+        framePos.Y.Scale,
+        framePos.Y.Offset + delta.Y
+    )
+end
+
+local function makeButtonDraggable(button)
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            mousePos = input.Position
+            framePos = button.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            updateInput(input, button)
+        end
+    end)
+end
+
+makeButtonDraggable(firstToggleButton)
+makeButtonDraggable(secondToggleButton)
+
+-- Continuously check for player respawn and reset the script
+local function resetScript()
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid.Died:Connect(function()
+            firstToggleOn = false
+            secondToggleOn = false
+            firstToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            firstToggleButton.Text = "⚫"
+            secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            secondToggleButton.Text = "🔴"
+            setPlayerSpeed() -- Reset the speed to default
+        end)
+    end)
+end
+
+resetScript()
