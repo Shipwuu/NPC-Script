@@ -26,7 +26,8 @@ local gamelist = {
     ["Specter"] = 5921569465,
     ["Natural Disaster"] = 189707,
     ["HOTEL 🛎️ Blair"] = 6348640020,
-    ["Keys🔑"] = 12407250267  -- Added game ID for Keys🔑
+    ["Keys🔑"] = 12407250267,  -- Added game ID for Keys🔑
+    ["[🪨NEW] Be NPC or DIE!💢"] = 11276071411  -- Added the new game
 }
 
 -- Function to send a notification
@@ -58,6 +59,9 @@ local function checkAndExecute()
 
             elseif gameName == "Keys🔑" then
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/Keys/main/Final%20Script"))()
+
+            elseif gameName == "[🪨NEW] Be NPC or DIE!💢" then
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/Shipwuu/NPC-Script/main/Final%20Script"))()  -- Script for the new game
             end
             break -- Exit loop once the correct game is detected and executed
         end
