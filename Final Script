@@ -1,5 +1,7 @@
 local urls = {
     "https://raw.githubusercontent.com/Shipwuu/NPC-Script/main/Script%20I"
+    "https://raw.githubusercontent.com/Shipwuu/NPC-Script/main/Script%20II"
+    "https://raw.githubusercontent.com/Shipwuu/NPC-Script/main/Script%20III"
 }
 
 local maxRetries = 10  -- Maximum number of retries for each URL
