@@ -153,39 +153,123 @@ screenGui.Name = "HitboxAndESPGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- ESP Button
+-- ESP Button with custom design
 local ESPButton = Instance.new("TextButton")
 ESPButton.Size = UDim2.new(0, 90, 0, 40)
 ESPButton.Position = UDim2.new(1, -350, 0, 10)
 ESPButton.TextSize = 18
 ESPButton.Font = Enum.Font.GothamBold
 ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
-ESPButton.Text = "ESP: OFF"
 ESPButton.Parent = screenGui
 
--- Hitbox Button
+-- Add UICorner for rounded corners
+local ESPButtonCorner = Instance.new("UICorner")
+ESPButtonCorner.CornerRadius = UDim.new(0, 5)
+ESPButtonCorner.Parent = ESPButton
+
+-- Add thin white UIStroke for the button frame
+local ESPButtonStroke = Instance.new("UIStroke")
+ESPButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+ESPButtonStroke.Thickness = 1
+ESPButtonStroke.Parent = ESPButton
+
+-- Add UIGradient to UIStroke for a gradient effect
+local ESPButtonGradient = Instance.new("UIGradient")
+ESPButtonGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
+}
+ESPButtonGradient.Parent = ESPButtonStroke
+
+-- Add a semi-transparent to non-transparent UIGradient for the button frame
+local ESPFrameGradient = Instance.new("UIGradient")
+ESPFrameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(152, 238, 204)),  -- Non-transparent white at the top
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 224, 238))  -- Semi-transparent black at the bottom
+}
+ESPFrameGradient.Rotation = 90  -- Horizontal gradient
+ESPFrameGradient.Parent = ESPButton
+
+-- Hitbox Button with custom design
 local HitboxButton = Instance.new("TextButton")
 HitboxButton.Size = UDim2.new(0, 90, 0, 40)
 HitboxButton.Position = UDim2.new(1, -350, 0, 60) -- Below ESP button
 HitboxButton.TextSize = 18
 HitboxButton.Font = Enum.Font.GothamBold
 HitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
-HitboxButton.Text = "Hitbox: OFF"
 HitboxButton.Parent = screenGui
+
+-- Add UICorner for rounded corners
+local HitboxButtonCorner = Instance.new("UICorner")
+HitboxButtonCorner.CornerRadius = UDim.new(0, 5)
+HitboxButtonCorner.Parent = HitboxButton
+
+-- Add thin white UIStroke for the button frame
+local HitboxButtonStroke = Instance.new("UIStroke")
+HitboxButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+HitboxButtonStroke.Thickness = 1
+HitboxButtonStroke.Parent = HitboxButton
+
+-- Add UIGradient to UIStroke for a gradient effect
+local HitboxButtonGradient = Instance.new("UIGradient")
+HitboxButtonGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
+}
+HitboxButtonGradient.Parent = HitboxButtonStroke
+
+-- Add a semi-transparent to non-transparent UIGradient for the button frame
+local HitboxFrameGradient = Instance.new("UIGradient")
+HitboxFrameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(152, 238, 204)),  -- Non-transparent white at the top
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 224, 238))  -- Semi-transparent black at the bottom
+}
+HitboxFrameGradient.Rotation = 90  -- Horizontal gradient
+HitboxFrameGradient.Parent = HitboxButton
+
+-- Function to update button appearance based on ESP state
+local function updateESPButton()
+    if ESPFullBodyEnabled then
+        ESPButton.Text = "ESP ON"
+        ESPButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green background
+        ESPButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    else
+        ESPButton.Text = "ESP OFF"
+        ESPButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black background
+        ESPButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    end
+end
+
+-- Function to update button appearance based on Hitbox state
+local function updateHitboxButton()
+    if HitboxEnabled then
+        HitboxButton.Text = "Hitbox ON"
+        HitboxButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green background
+        HitboxButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    else
+        HitboxButton.Text = "Hitbox OFF"
+        HitboxButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black background
+        HitboxButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    end
+end
 
 -- Toggle ESP Full Body Functionality
 ESPButton.MouseButton1Click:Connect(function()
     ESPFullBodyEnabled = not ESPFullBodyEnabled
-    ESPButton.Text = ESPFullBodyEnabled and "ESP: ON" or "ESP: OFF"
+    updateESPButton()
 end)
 
 -- Toggle Hitbox Functionality
 HitboxButton.MouseButton1Click:Connect(function()
     HitboxEnabled = not HitboxEnabled
-    HitboxButton.Text = HitboxEnabled and "Hitbox: ON" or "Hitbox: OFF"
+    updateHitboxButton()
 end)
+
+-- Initial button state
+updateESPButton()
+updateHitboxButton()
 
 -- Start auto-updating ESP and Hitbox when script is executed
 startAutoUpdating()
 
-print("ESP and Hitbox script with auto-updating initialized.")
+print("ESP and Hitbox script with custom buttons initialized.")
