@@ -1,189 +1,202 @@
 -- Services
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local COREGUI = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
 
--- Player and GUI setup
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+-- Variables
+local ESPenabled = true
 
--- Create the First Button (Speed Toggle 1)
-local function createFirstToggleButton()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "FirstSpeedToggleGui"
-    screenGui.Parent = playerGui
-    screenGui.ResetOnSpawn = false
-
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Name = "FirstSpeedToggleButton"
-    toggleButton.Size = UDim2.new(0, 80, 0, 80)
-    toggleButton.Position = UDim2.new(0.9, 0, 0.5, -120) -- Positioned higher on the screen
-    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.BorderSizePixel = 0
-    toggleButton.Text = "⚫"
-    toggleButton.TextTransparency = 0.5
-    toggleButton.Font = Enum.Font.SourceSansBold
-    toggleButton.TextScaled = true
-    toggleButton.Parent = screenGui
-
-    -- Make the button circular
-    local uICorner = Instance.new("UICorner")
-    uICorner.CornerRadius = UDim.new(1, 0)
-    uICorner.Parent = toggleButton
-
-    return toggleButton
+-- Utility Functions
+local function getRoot(char)
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
 end
 
--- Create the Second Button (Speed Toggle 2)
-local function createSecondToggleButton()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "SecondSpeedToggleGui"
-    screenGui.Parent = playerGui
-    screenGui.ResetOnSpawn = false
-
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Name = "SecondSpeedToggleButton"
-    toggleButton.Size = UDim2.new(0, 80, 0, 80)
-    toggleButton.Position = UDim2.new(0.9, 0, 0.5, -40) -- Positioned below the first button
-    toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.BorderSizePixel = 0
-    toggleButton.Text = "⭕"
-    toggleButton.TextTransparency = 0.5
-    toggleButton.Font = Enum.Font.SourceSansBold
-    toggleButton.TextScaled = true
-    toggleButton.Parent = screenGui
-
-    -- Make the button circular
-    local uICorner = Instance.new("UICorner")
-    uICorner.CornerRadius = UDim.new(1, 0)
-    uICorner.Parent = toggleButton
-
-    return toggleButton
+-- Check if the model has a "TradeProximityPrompt," indicating a real player (not an NPC)
+local function isRealPlayer(model)
+    return model:FindFirstChild("HumanoidRootPart") and model.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") ~= nil
 end
 
--- Manage Speed Based on Both Button States
-local firstToggleOn = false
-local secondToggleOn = false
-
--- Function to change player speed
-local function setPlayerSpeed()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    
-    if humanoid then
-        if secondToggleOn then
-            humanoid.WalkSpeed = 21 -- Second button on: priority speed is 21
-        elseif not secondToggleOn and firstToggleOn then
-            humanoid.WalkSpeed = 17 -- First button on, second button off: speed is 17
-        elseif not secondToggleOn and not firstToggleOn then
-            humanoid.WalkSpeed = 7.8 -- Both buttons off: speed is 7.8
-        end
-    end
+-- Old sheriff detection based on "GunSource"
+local function isSheriffOld(model)
+    return model:FindFirstChild("GunSource") ~= nil
 end
 
--- Update speed for second button's "off" state
-local function updateSecondButtonSpeed()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    
-    if humanoid and secondToggleOn then
-        humanoid.WalkSpeed = 21 -- Speed is 21 when second button is on
-    elseif humanoid and not secondToggleOn then
-        humanoid.WalkSpeed = 11 -- Speed is 11 when second button is off
-    end
+-- New sheriff detection logic based on "ItemOnBody" in the player's workspace path
+local function isSheriffNew(model)
+    local playerName = model.Name
+    local playerWorkspaceItem = workspace:FindFirstChild(playerName) and workspace[playerName]:FindFirstChild("ItemOnBody")
+    return playerWorkspaceItem ~= nil
 end
 
--- First Button Functionality
-local firstToggleButton = createFirstToggleButton()
-firstToggleButton.MouseButton1Click:Connect(function()
-    firstToggleOn = not firstToggleOn -- Toggle state
-    if firstToggleOn then
-        firstToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow when on
-        firstToggleButton.Text = "🟡"
-    else
-        firstToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Black when off
-        firstToggleButton.Text = "⚫"
-    end
-    setPlayerSpeed() -- Update speed based on the new state
-end)
+-- ESP logic for real players and sheriffs only (NPCs excluded)
+local function ESP(model)
+    task.spawn(function()
+        local playerName = model.Name
+        
+        -- Only apply ESP if it's a real player or sheriff
+        if isRealPlayer(model) or isSheriffOld(model) or isSheriffNew(model) then
+            -- Check if ESP already exists and clean up if it does
+            local existingESP = COREGUI:FindFirstChild(playerName .. '_ESP')
+            if existingESP then
+                existingESP:Destroy()
+            end
 
--- Second Button Functionality
-local secondToggleButton = createSecondToggleButton()
-secondToggleButton.MouseButton1Click:Connect(function()
-    secondToggleOn = not secondToggleOn -- Toggle state
-    if secondToggleOn then
-        secondToggleButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0) -- Yellow when on
-        secondToggleButton.Text = "🔵"
-    else
-        secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Black when off
-        secondToggleButton.Text = "⭕"
-    end
-    updateSecondButtonSpeed() -- Update speed based on second button state
-end)
+            local ESPholder = Instance.new("Folder")
+            ESPholder.Name = playerName .. '_ESP'
+            ESPholder.Parent = COREGUI
 
--- Independent Dragging for First and Second Buttons
+            local humanoidRootPart = getRoot(model)
+            if humanoidRootPart and model:FindFirstChildOfClass("Humanoid") then
+                local BillboardGui = Instance.new("BillboardGui")
+                BillboardGui.Adornee = humanoidRootPart
+                BillboardGui.Name = playerName
+                BillboardGui.Parent = ESPholder
+                BillboardGui.Size = UDim2.new(0, 150, 0, 50)
+                BillboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
+                BillboardGui.AlwaysOnTop = true
 
-local function makeButtonDraggable(button)
-    local dragging = false
-    local dragInput, mousePos, framePos
+                local TextLabel = Instance.new("TextLabel")
+                TextLabel.Parent = BillboardGui
+                TextLabel.BackgroundTransparency = 1
+                TextLabel.Position = UDim2.new(0, 0, 0, 0)
+                TextLabel.Size = UDim2.new(0, 150, 0, 25)
+                TextLabel.Font = Enum.Font.GothamBold
+                TextLabel.TextSize = 18
 
-    local function updateInput(input)
-        local delta = input.Position - mousePos
-        button.Position = UDim2.new(
-            framePos.X.Scale,
-            framePos.X.Offset + delta.X,
-            framePos.Y.Scale,
-            framePos.Y.Offset + delta.Y
-        )
-    end
-
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            mousePos = input.Position
-            framePos = button.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+                -- Detect and apply correct color based on whether it's a Sheriff or Player
+                if isSheriffNew(model) then
+                    TextLabel.TextColor3 = Color3.fromRGB(0, 0, 255) -- Blue for Sheriffs (new logic)
+                elseif isSheriffOld(model) then
+                    TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green for Sheriffs (old logic)
+                elseif isRealPlayer(model) then
+                    TextLabel.TextColor3 = Color3.new(1, 0, 0) -- Red for real players (non-NPC)
                 end
-            end)
-        end
-    end)
 
-    button.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
+                TextLabel.TextStrokeTransparency = 0.5
+                TextLabel.TextStrokeColor3 = Color3.fromRGB(209, 216, 197)  -- Black outline
+                TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+                TextLabel.Text = playerName
 
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input == dragInput then
-            updateInput(input)
+                -- Update position and distance dynamically
+                local espLoopFunc
+                local function espLoop()
+                    if COREGUI:FindFirstChild(playerName .. '_ESP') then
+                        if model and getRoot(model) then
+                            local pos = math.floor((getRoot(LocalPlayer.Character).Position - getRoot(model).Position).magnitude)
+                            TextLabel.Text = playerName .. " (" .. pos .. " studs)"
+                        end
+                    else
+                        espLoopFunc:Disconnect()
+                    end
+                end
+                espLoopFunc = RunService.RenderStepped:Connect(espLoop)
+            end
         end
     end)
 end
 
--- Make both buttons independently draggable
-makeButtonDraggable(firstToggleButton)
-makeButtonDraggable(secondToggleButton)
-
--- Continuously check for player respawn and reset the script
-local function resetScript()
-    player.CharacterAdded:Connect(function(character)
-        local humanoid = character:WaitForChild("Humanoid")
-        humanoid.Died:Connect(function()
-            firstToggleOn = false
-            secondToggleOn = false
-            firstToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            firstToggleButton.Text = "⚫"
-            secondToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            secondToggleButton.Text = "⭕"
-            setPlayerSpeed() -- Reset the speed to default
-        end)
-    end)
+-- Function to update ESP dynamically by looping through workspace (for real players and sheriffs only)
+local function updateESP()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:FindFirstChild("HumanoidRootPart") and (isRealPlayer(obj) or isSheriffOld(obj) or isSheriffNew(obj)) then
+            ESP(obj)
+        end
+    end
 end
 
-resetScript()
+-- Run a loop every 0.5 seconds to detect changes in players' status and update ESP
+local function startAutoUpdatingESP()
+    while ESPenabled do
+        updateESP()
+        wait(0.5) -- Updates ESP every half second (you can reduce this to refresh even faster)
+    end
+end
+
+-- UI elements to control the ESP toggle
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 90, 0, 40)
+toggleButton.Position = UDim2.new(1, -350, 0, 10)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
+toggleButton.Parent = screenGui
+
+-- Add UICorner for rounded corners
+local toggleButtonCorner = Instance.new("UICorner")
+toggleButtonCorner.CornerRadius = UDim.new(0, 5)
+toggleButtonCorner.Parent = toggleButton
+
+-- Add thin white UIStroke for the button frame
+local toggleButtonStroke = Instance.new("UIStroke")
+toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+toggleButtonStroke.Thickness = 1
+toggleButtonStroke.Parent = toggleButton
+
+-- Add UIGradient to UIStroke for a gradient effect
+local toggleButtonGradient = Instance.new("UIGradient")
+toggleButtonGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 150, 150))
+}
+toggleButtonGradient.Parent = toggleButtonStroke
+
+-- Add a semi-transparent to non-transparent UIGradient for the button frame
+local frameGradient = Instance.new("UIGradient")
+frameGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(152, 238, 204)),  -- Non-transparent white at the top
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(121, 224, 238))  -- Semi-transparent black at the bottom
+}
+frameGradient.Rotation = 90  -- Horizontal gradient
+frameGradient.Parent = toggleButton
+
+-- Function to update button appearance based on ESP state
+local function updateButton()
+    if ESPenabled then
+        toggleButton.Text = "ESP ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)  -- Green background
+        toggleButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    else
+        toggleButton.Text = "ESP OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)  -- Black background
+        toggleButton.BackgroundTransparency = 0.9  -- Semi-transparent background
+    end
+end
+
+-- Initial button state
+updateButton()
+
+toggleButton.MouseButton1Click:Connect(function()
+    ESPenabled = not ESPenabled
+    updateButton()
+    if not ESPenabled then
+        -- Stop all ESP updates and remove ESP elements from the screen
+        for i, v in pairs(COREGUI:GetChildren()) do
+            if v.Name:find('_ESP') then
+                v:Destroy()
+            end
+        end
+    else
+        -- Start auto-updating ESP again
+        startAutoUpdatingESP()
+    end
+end)
+
+-- Ensure players list is updated when new players join or leave
+Players.PlayerAdded:Connect(function()
+    updateESP()
+end)
+
+Players.PlayerRemoving:Connect(function()
+    updateESP()
+end)
+
+-- Start auto-updating ESP when script is executed
+startAutoUpdatingESP()
+
+print("ESP script with auto-updating initialized.")
