@@ -1,134 +1,191 @@
--- Remove any previous instances of the script GUI or ESP elements
-if game.CoreGui:FindFirstChild("HitboxAndESPGui") then
-    game.CoreGui.HitboxAndESPGui:Destroy()
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local COREGUI = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- Variables
+local ESPenabled = true
+local HitboxEnabled = false
+local ESPFullBodyEnabled = false
+
+-- Utility Functions
+local function getRoot(char)
+    return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
 end
 
-if game.CoreGui:FindFirstChild("ESPHolder") then
-    game.CoreGui.ESPHolder:Destroy()
+-- Check if the model has a "TradeProximityPrompt," indicating a real player (not an NPC)
+local function isRealPlayer(model)
+    return model:FindFirstChild("HumanoidRootPart") and model.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") ~= nil
 end
 
--- Settings for Hitbox and ESP
-getgenv().HitboxSize = 15
-getgenv().HitboxTransparency = 0.9
-getgenv().HitboxStatus = false
-getgenv().TeamCheck = false
-getgenv().filluseteamcolor = true
-getgenv().outlineuseteamcolor = true
-getgenv().fillcolor = Color3.new(0, 0, 0)
-getgenv().outlinecolor = Color3.new(1, 1, 1)
-getgenv().filltrans = 0.5
-getgenv().outlinetrans = 0.5
+-- Old sheriff detection based on "GunSource"
+local function isSheriffOld(model)
+    return model:FindFirstChild("GunSource") ~= nil
+end
 
--- Create a ScreenGui for the toggles
-local ScreenGui = Instance.new("ScreenGui")
-local HitboxAndESPButton = Instance.new("TextButton")
-local TeamCheckButton = Instance.new("TextButton")
+-- New sheriff detection logic based on "ItemOnBody" in the player's workspace path
+local function isSheriffNew(model)
+    local playerName = model.Name
+    local playerWorkspaceItem = workspace:FindFirstChild(playerName) and workspace[playerName]:FindFirstChild("ItemOnBody")
+    return playerWorkspaceItem ~= nil
+end
 
-ScreenGui.Name = "HitboxAndESPGui"
-ScreenGui.Parent = game.CoreGui
+-- ESP and Hitbox logic for real players and sheriffs only (NPCs excluded)
+local function ESPandHitbox(model)
+    task.spawn(function()
+        local playerName = model.Name
 
--- Hitbox and ESP Toggle Button
-HitboxAndESPButton.Name = "HitboxAndESPToggle"
-HitboxAndESPButton.Parent = ScreenGui
-HitboxAndESPButton.BackgroundColor3 = Color3.fromRGB(75, 151, 75)
-HitboxAndESPButton.Position = UDim2.new(0.1, 0, 0.1, 0)
-HitboxAndESPButton.Size = UDim2.new(0, 200, 0, 50)
-HitboxAndESPButton.Font = Enum.Font.SourceSans
-HitboxAndESPButton.Text = "Hitbox & ESP: OFF"
-HitboxAndESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HitboxAndESPButton.TextScaled = true
+        -- Only apply ESP and Hitbox if it's a real player or sheriff
+        if isRealPlayer(model) or isSheriffOld(model) or isSheriffNew(model) then
+            -- Check if ESP already exists and clean up if it does
+            local existingESP = COREGUI:FindFirstChild(playerName .. '_ESP')
+            if existingESP then
+                existingESP:Destroy()
+            end
 
--- Team Check Toggle Button
-TeamCheckButton.Name = "TeamCheckToggle"
-TeamCheckButton.Parent = ScreenGui
-TeamCheckButton.BackgroundColor3 = Color3.fromRGB(75, 151, 75)
-TeamCheckButton.Position = UDim2.new(0.1, 0, 0.2, 0)
-TeamCheckButton.Size = UDim2.new(0, 200, 0, 50)
-TeamCheckButton.Font = Enum.Font.SourceSans
-TeamCheckButton.Text = "Team Check: OFF"
-TeamCheckButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-TeamCheckButton.TextScaled = true
+            local ESPholder = Instance.new("Folder")
+            ESPholder.Name = playerName .. '_ESP'
+            ESPholder.Parent = COREGUI
 
--- Function to update hitbox size and ESP
-local function updateHitboxAndESP()
-    local holder = game.CoreGui:FindFirstChild("ESPHolder") or Instance.new("Folder")
-    holder.Name = "ESPHolder"
-    holder.Parent = game.CoreGui
+            local humanoidRootPart = getRoot(model)
+            if humanoidRootPart and model:FindFirstChildOfClass("Humanoid") then
+                -- ESP Full Body Highlight
+                if ESPFullBodyEnabled then
+                    local BillboardGui = Instance.new("BillboardGui")
+                    BillboardGui.Adornee = humanoidRootPart
+                    BillboardGui.Name = playerName
+                    BillboardGui.Parent = ESPholder
+                    BillboardGui.Size = UDim2.new(0, 150, 0, 50)
+                    BillboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
+                    BillboardGui.AlwaysOnTop = true
 
-    for i, v in pairs(game:GetService('Players'):GetPlayers()) do
-        if v ~= game.Players.LocalPlayer then
-            if getgenv().HitboxStatus == true and (not getgenv().TeamCheck or v.Team ~= game.Players.LocalPlayer.Team) then
-                -- Update Hitbox
-                pcall(function()
-                    v.Character.HumanoidRootPart.Size = Vector3.new(getgenv().HitboxSize, getgenv().HitboxSize, getgenv().HitboxSize)
-                    v.Character.HumanoidRootPart.Transparency = getgenv().HitboxTransparency
-                    v.Character.HumanoidRootPart.BrickColor = BrickColor.new("Really black")
-                    v.Character.HumanoidRootPart.Material = "Neon"
-                    v.Character.HumanoidRootPart.CanCollide = false
-                end)
+                    local TextLabel = Instance.new("TextLabel")
+                    TextLabel.Parent = BillboardGui
+                    TextLabel.BackgroundTransparency = 1
+                    TextLabel.Position = UDim2.new(0, 0, 0, 0)
+                    TextLabel.Size = UDim2.new(0, 150, 0, 25)
+                    TextLabel.Font = Enum.Font.GothamBold
+                    TextLabel.TextSize = 18
 
-                -- Update ESP
-                local chr = v.Character
-                if chr ~= nil then
-                    local esp = holder:FindFirstChild(v.Name) or Instance.new("Highlight")
-                    esp.Name = v.Name
-                    if v.Name ~= game.Players.LocalPlayer.Name then
-                        esp.Parent = holder
-                        if getgenv().filluseteamcolor then
-                            esp.FillColor = v.TeamColor.Color
-                        else
-                            esp.FillColor = getgenv().fillcolor
-                        end
-                        if getgenv().outlineuseteamcolor then
-                            esp.OutlineColor = v.TeamColor.Color
-                        else
-                            esp.OutlineColor = getgenv().outlinecolor
-                        end
-                        esp.FillTransparency = getgenv().filltrans
-                        esp.OutlineTransparency = getgenv().outlinetrans
-                        esp.Adornee = chr
-                        esp.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                    -- Detect and apply correct color based on Sheriff or Player status
+                    if isSheriffNew(model) then
+                        TextLabel.TextColor3 = Color3.fromRGB(0, 0, 255) -- Blue for Sheriffs (new logic)
+                    elseif isSheriffOld(model) then
+                        TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green for Sheriffs (old logic)
+                    elseif isRealPlayer(model) then
+                        TextLabel.TextColor3 = Color3.new(1, 0, 0) -- Red for real players (non-NPC)
                     end
-                end
-            else
-                -- Reset hitbox and remove ESP
-                pcall(function()
-                    v.Character.HumanoidRootPart.Size = Vector3.new(2, 2, 1)
-                    v.Character.HumanoidRootPart.Transparency = 1
-                    v.Character.HumanoidRootPart.BrickColor = BrickColor.new("Medium stone grey")
-                    v.Character.HumanoidRootPart.Material = "Plastic"
-                    v.Character.HumanoidRootPart.CanCollide = true
-                end)
 
-                if holder:FindFirstChild(v.Name) then
-                    holder:FindFirstChild(v.Name):Destroy()
+                    TextLabel.TextStrokeTransparency = 0.5
+                    TextLabel.TextStrokeColor3 = Color3.fromRGB(209, 216, 197)  -- Black outline
+                    TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+                    TextLabel.Text = playerName
+
+                    -- Update position and distance dynamically
+                    local espLoopFunc
+                    local function espLoop()
+                        if COREGUI:FindFirstChild(playerName .. '_ESP') then
+                            if model and getRoot(model) then
+                                local pos = math.floor((getRoot(LocalPlayer.Character).Position - getRoot(model).Position).magnitude)
+                                TextLabel.Text = playerName .. " (" .. pos .. " studs)"
+                            end
+                        else
+                            espLoopFunc:Disconnect()
+                        end
+                    end
+                    espLoopFunc = RunService.RenderStepped:Connect(espLoop)
+                end
+
+                -- Hitbox Expansion
+                if HitboxEnabled then
+                    -- Update Hitbox for real players or Sheriffs
+                    pcall(function()
+                        humanoidRootPart.Size = Vector3.new(15, 15, 15) -- Larger hitbox size for easy targeting
+                        humanoidRootPart.Transparency = 0.9
+                        humanoidRootPart.Material = "Neon"
+                        humanoidRootPart.CanCollide = false
+
+                        -- Apply color logic to the hitbox based on Sheriff or Player status
+                        if isSheriffNew(model) then
+                            humanoidRootPart.BrickColor = BrickColor.new("Bright blue") -- Blue for Sheriffs (new logic)
+                        elseif isSheriffOld(model) then
+                            humanoidRootPart.BrickColor = BrickColor.new("Bright green") -- Green for Sheriffs (old logic)
+                        elseif isRealPlayer(model) then
+                            humanoidRootPart.BrickColor = BrickColor.new("Bright red") -- Red for real players (non-NPC)
+                        end
+                    end)
+                else
+                    -- Reset Hitbox to default
+                    pcall(function()
+                        humanoidRootPart.Size = Vector3.new(2, 2, 1) -- Reset to default size
+                        humanoidRootPart.Transparency = 1
+                        humanoidRootPart.BrickColor = BrickColor.new("Medium stone grey") -- Default color for neutral state
+                        humanoidRootPart.Material = "Plastic"
+                        humanoidRootPart.CanCollide = true
+                    end)
                 end
             end
+        end
+    end)
+end
+
+-- Function to update ESP and Hitbox dynamically by looping through workspace
+local function updateESPandHitbox()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:FindFirstChild("HumanoidRootPart") and (isRealPlayer(obj) or isSheriffOld(obj) or isSheriffNew(obj)) then
+            ESPandHitbox(obj)
         end
     end
 end
 
--- Toggle Hitbox and ESP Button Functionality
-HitboxAndESPButton.MouseButton1Click:Connect(function()
-    getgenv().HitboxStatus = not getgenv().HitboxStatus
-    if getgenv().HitboxStatus then
-        HitboxAndESPButton.Text = "Hitbox & ESP: ON"
-    else
-        HitboxAndESPButton.Text = "Hitbox & ESP: OFF"
+-- Run a loop every 0.5 seconds to detect changes in players' status and update ESP and Hitbox
+local function startAutoUpdating()
+    while ESPenabled or HitboxEnabled do
+        updateESPandHitbox()
+        wait(0.5) -- Updates every half second (adjust as needed)
     end
-    updateHitboxAndESP()
+end
+
+-- UI elements to control the ESP and Hitbox toggles
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HitboxAndESPGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- ESP Button
+local ESPButton = Instance.new("TextButton")
+ESPButton.Size = UDim2.new(0, 90, 0, 40)
+ESPButton.Position = UDim2.new(1, -350, 0, 10)
+ESPButton.TextSize = 18
+ESPButton.Font = Enum.Font.GothamBold
+ESPButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
+ESPButton.Text = "ESP: OFF"
+ESPButton.Parent = screenGui
+
+-- Hitbox Button
+local HitboxButton = Instance.new("TextButton")
+HitboxButton.Size = UDim2.new(0, 90, 0, 40)
+HitboxButton.Position = UDim2.new(1, -350, 0, 60) -- Below ESP button
+HitboxButton.TextSize = 18
+HitboxButton.Font = Enum.Font.GothamBold
+HitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)  -- White text
+HitboxButton.Text = "Hitbox: OFF"
+HitboxButton.Parent = screenGui
+
+-- Toggle ESP Full Body Functionality
+ESPButton.MouseButton1Click:Connect(function()
+    ESPFullBodyEnabled = not ESPFullBodyEnabled
+    ESPButton.Text = ESPFullBodyEnabled and "ESP: ON" or "ESP: OFF"
 end)
 
--- Toggle Team Check Button Functionality
-TeamCheckButton.MouseButton1Click:Connect(function()
-    getgenv().TeamCheck = not getgenv().TeamCheck
-    if getgenv().TeamCheck then
-        TeamCheckButton.Text = "Team Check: ON"
-    else
-        TeamCheckButton.Text = "Team Check: OFF"
-    end
-    updateHitboxAndESP()
+-- Toggle Hitbox Functionality
+HitboxButton.MouseButton1Click:Connect(function()
+    HitboxEnabled = not HitboxEnabled
+    HitboxButton.Text = HitboxEnabled and "Hitbox: ON" or "Hitbox: OFF"
 end)
 
--- Constantly update hitboxes and ESP every frame
-game:GetService('RunService').RenderStepped:Connect(updateHitboxAndESP)
+-- Start auto-updating ESP and Hitbox when script is executed
+startAutoUpdating()
+
+print("ESP and Hitbox script with auto-updating initialized.")
