@@ -187,5 +187,3 @@ local function resetScript()
 end
 
 resetScript()
-
-print"1")
