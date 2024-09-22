@@ -54,6 +54,7 @@ local function createSecondToggleButton()
     toggleButton.Font = Enum.Font.SourceSansBold
     toggleButton.TextScaled = true
     toggleButton.Parent = screenGui
+    toggleButton.Visible = false
 
     -- Make the button circular
     local uICorner = Instance.new("UICorner")
