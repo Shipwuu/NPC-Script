@@ -1,2 +1,7 @@
 workspace:GetChildren()[15].HumanoidRootPart.PathfindingModifier
 workspace.belerbeler123.HumanoidRootPart.TradeProximityPrompt
+
+
+game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonFrame:GetChildren()[3]
+
+game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonFrame:GetChildren()[4]
