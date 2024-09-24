@@ -17,7 +17,7 @@ local function createFirstToggleButton()
     local toggleButton = Instance.new("TextButton")
     toggleButton.Name = "FirstSpeedToggleButton"
     toggleButton.Size = UDim2.new(0, 80, 0, 80)
-    toggleButton.Position = UDim2.new(0.9, 0, 0.5, -120) -- Positioned higher on the screen
+    toggleButton.Position = UDim2.new(0.7, 0, 0.6, -120) -- Positioned higher on the screen
     toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     toggleButton.BackgroundTransparency = 1
     toggleButton.BorderSizePixel = 0
