@@ -6,4 +6,4 @@ game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonF
 
 game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonFrame:GetChildren()[4]
 
-game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonFrame:GetChildren()[4].Generated_Progress_Bar
+game:GetService("Players").LocalPlayer.PlayerGui.ContextActionGui.ContextButtonFrame.Generated_Progress_Bar
