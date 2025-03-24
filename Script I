@@ -47,7 +47,7 @@ local function ESP(model)
         wait()
 
         -- Detect real players using the TradeProximityPrompt
-        if model:FindFirstChild("HumanoidRootPart") and model.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") then
+        if model:FindFirstChild("HumanoidRootPart") and model.HumanoidRootPart:FindFirstChild("PlayerProximityPrompt") then
             local ESPholder = Instance.new("Folder")
             ESPholder.Name = playerName .. '_ESP'
             ESPholder.Parent = COREGUI
@@ -97,7 +97,7 @@ end
 -- Function to update ESP dynamically by looping through workspace
 local function updateESP()
     for _, obj in pairs(workspace:GetChildren()) do
-        if obj:FindFirstChild("HumanoidRootPart") and obj.HumanoidRootPart:FindFirstChild("TradeProximityPrompt") then
+        if obj:FindFirstChild("HumanoidRootPart") and obj.HumanoidRootPart:FindFirstChild("PlayerProximityPrompt") then
             if not COREGUI:FindFirstChild(obj.Name .. '_ESP') then
                 ESP(obj)
             end
