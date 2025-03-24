@@ -1,0 +1,153 @@
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local COREGUI = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- Variables
+local ESPenabled = false
+
+-- Utility Functions
+local function getRoot(char)
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+end
+
+local function isSheriff(model)
+    return model:FindFirstChild("GunSource") ~= nil
+end
+
+-- ESP Function (Billboard & Highlight)
+local function ESP(model)
+    task.spawn(function()
+        local playerName = model.Name
+
+        -- Remove any existing ESP
+        for _, v in pairs(COREGUI:GetChildren()) do
+            if v.Name == playerName .. "_ESP" then
+                v:Destroy()
+            end
+        end
+        for _, v in pairs(model:GetChildren()) do
+            if v:IsA("Highlight") then
+                v:Destroy()
+            end
+        end
+        wait()
+
+        if model:FindFirstChild("HumanoidRootPart") and model:FindFirstChild("PlayerProximityPrompt") then
+            local humanoidRootPart = getRoot(model)
+            if humanoidRootPart and model:FindFirstChildOfClass("Humanoid") then
+                -- Create ESP Holder
+                local ESPholder = Instance.new("Folder")
+                ESPholder.Name = playerName .. "_ESP"
+                ESPholder.Parent = COREGUI
+
+                -- Billboard ESP
+                local BillboardGui = Instance.new("BillboardGui")
+                BillboardGui.Adornee = humanoidRootPart
+                BillboardGui.Name = playerName
+                BillboardGui.Parent = ESPholder
+                BillboardGui.Size = UDim2.new(0, 150, 0, 50)
+                BillboardGui.StudsOffset = Vector3.new(0, 2, 0)
+                BillboardGui.AlwaysOnTop = true
+
+                local TextLabel = Instance.new("TextLabel")
+                TextLabel.Parent = BillboardGui
+                TextLabel.BackgroundTransparency = 1
+                TextLabel.Size = UDim2.new(0, 150, 0, 25)
+                TextLabel.Font = Enum.Font.GothamBold
+                TextLabel.TextSize = 18
+                TextLabel.TextColor3 = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(97, 94, 252)
+                TextLabel.TextStrokeTransparency = 0.5
+                TextLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+                TextLabel.Text = playerName
+
+                -- Highlight ESP
+                local Highlight = Instance.new("Highlight")
+                Highlight.Name = playerName .. "_Highlight"
+                Highlight.FillTransparency = 0.5
+                Highlight.FillColor = isSheriff(model) and Color3.new(1, 0, 0) or Color3.fromRGB(97, 94, 252)
+                Highlight.OutlineColor = Color3.new(1, 1, 1)
+                Highlight.OutlineTransparency = 0
+                Highlight.Parent = model
+
+                -- ESP Update Loop
+                local function espLoop()
+                    if COREGUI:FindFirstChild(playerName .. "_ESP") then
+                        if model and getRoot(model) then
+                            local pos = math.floor((getRoot(LocalPlayer.Character).Position - getRoot(model).Position).magnitude)
+                            TextLabel.Text = playerName .. " (" .. pos .. " studs)"
+                        end
+                    else
+                        return
+                    end
+                end
+                RunService.RenderStepped:Connect(espLoop)
+            end
+        end
+    end)
+end
+
+-- Update ESP
+local function updateESP()
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("PlayerProximityPrompt") then
+            if not COREGUI:FindFirstChild(obj.Name .. "_ESP") then
+                ESP(obj)
+            end
+        end
+    end
+end
+
+-- Run ESP loop
+RunService.RenderStepped:Connect(function()
+    if ESPenabled then
+        updateESP()
+    end
+end)
+
+-- UI Elements
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ESPToggleGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 90, 0, 40)
+toggleButton.Position = UDim2.new(1, -350, 0, 10)
+toggleButton.TextSize = 18
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.Parent = screenGui
+
+-- Function to update button appearance
+local function updateButton()
+    toggleButton.Text = ESPenabled and "ESP ON" or "ESP OFF"
+    toggleButton.BackgroundColor3 = ESPenabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 0, 0)
+end
+
+updateButton()
+
+toggleButton.MouseButton1Click:Connect(function()
+    ESPenabled = not ESPenabled
+    updateButton()
+    if not ESPenabled then
+        for _, v in pairs(COREGUI:GetChildren()) do
+            if v.Name:find("_ESP") then
+                v:Destroy()
+            end
+        end
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                for _, obj in pairs(player.Character:GetChildren()) do
+                    if obj:IsA("Highlight") then
+                        obj:Destroy()
+                    end
+                end
+            end
+        end
+    end
+end)
+
+print("ESP and Highlight ESP updated successfully!")
