@@ -197,3 +197,66 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gameProce
 end)
 
 print("Instant ProximityPrompt ON")
+
+-- Destroy previous script instance if duplicated
+if game.CoreGui:FindFirstChild("SpeedToggleUI") then
+    game.CoreGui:FindFirstChild("SpeedToggleUI"):Destroy()
+end
+
+local toggle = false
+local keybind = Enum.KeyCode.V
+local player = game:GetService("Players").LocalPlayer
+local loopRunning = false
+local speedLoop = nil -- Stores the running loop
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SpeedToggleUI"
+local TextLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game.CoreGui
+TextLabel.Parent = ScreenGui
+TextLabel.Position = UDim2.new(1, -150, 1, -80) -- Bottom right corner
+TextLabel.Size = UDim2.new(0, 140, 0, 25)
+TextLabel.BackgroundTransparency = 1 -- Fully transparent background
+TextLabel.TextScaled = true
+TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Default red (off)
+TextLabel.Text = "Speed: OFF"
+TextLabel.Font = Enum.Font.SourceSansBold
+
+-- Function to start speed loop
+local function startSpeedLoop(speed)
+    -- Stop any existing loop
+    if speedLoop then
+        speedLoop:Disconnect()
+        speedLoop = nil
+    end
+    
+    -- Start new loop
+    speedLoop = game:GetService("RunService").RenderStepped:Connect(function()
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = speed
+        end
+    end)
+end
+
+-- Toggle function
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == keybind then
+        toggle = not toggle
+
+        -- Update GUI
+        if toggle then
+            startSpeedLoop(18) -- Speed ON
+            TextLabel.Text = "Speed: ON"
+            TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        else
+            startSpeedLoop(14) -- Speed OFF
+            TextLabel.Text = "Speed: OFF"
+            TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        end
+    end
+end)
+
+print("Speed ON")
