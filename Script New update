@@ -209,8 +209,8 @@ local keybindIncrease = Enum.KeyCode.B
 local keybindDecrease = Enum.KeyCode.V
 local player = game:GetService("Players").LocalPlayer
 local speedLoop = nil
-local defaultSpeed = 14 -- Speed when OFF
-local currentSpeed = 18  -- Speed when ON (changeable)
+local defaultSpeed = 8 -- Speed when OFF
+local currentSpeed = 17  -- Speed when ON (changeable)
 
 -- Create GUI
 local ScreenGui = Instance.new("ScreenGui")
@@ -224,7 +224,7 @@ TextLabel.Size = UDim2.new(0, 140, 0, 25)
 TextLabel.BackgroundTransparency = 1 -- Fully transparent background
 TextLabel.TextScaled = true
 TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Default red (off)
-TextLabel.Text = "Speed: OFF (14)"
+TextLabel.Text = "Speed: OFF (8)"
 TextLabel.Font = Enum.Font.SourceSansBold
 
 -- Function to start speed loop
