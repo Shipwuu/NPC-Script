@@ -151,3 +151,49 @@ toggleButton.MouseButton1Click:Connect(function()
 end)
 
 print("ESP and Highlight ESP updated successfully!")
+
+local toggle = false
+local keybind = Enum.KeyCode.X
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+local TextLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game.CoreGui
+TextLabel.Parent = ScreenGui
+TextLabel.Position = UDim2.new(1, -150, 1, -50) -- Bottom right corner
+TextLabel.Size = UDim2.new(0, 140, 0, 25)
+TextLabel.BackgroundTransparency = 1 -- Fully transparent background
+TextLabel.TextScaled = true
+TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Default red (off)
+TextLabel.Text = "Instant Prompt: OFF"
+TextLabel.Font = Enum.Font.SourceSansBold
+
+-- Function to update ProximityPrompt HoldDuration
+local function updatePrompts(state)
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ProximityPrompt") then
+            obj.HoldDuration = state and 0 or 10
+        end
+    end
+end
+
+-- Toggle function
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == keybind then
+        toggle = not toggle
+        updatePrompts(toggle)
+
+        -- Update GUI
+        if toggle then
+            TextLabel.Text = "Instant Prompt: ON"
+            TextLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        else
+            TextLabel.Text = "Instant Prompt: OFF"
+            TextLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red
+        end
+    end
+end)
+
+print("Instant ProximityPrompt ON")
