@@ -282,8 +282,51 @@ game:GetService("UserInputService").InputBegan:Connect(function(input, gameProce
             currentSpeed = currentSpeed - 1
             startSpeedLoop(currentSpeed) -- Apply new speed immediately
             updateGUI()
+
         end
     end
 end)
 
 print("Speed ON")
+
+-- Destroy previous script instance if duplicated
+if game.CoreGui:FindFirstChild("StaminaScript") then
+    game.CoreGui:FindFirstChild("StaminaScript"):Destroy()
+end
+
+-- Create a new script instance
+local StaminaScript = Instance.new("ScreenGui")
+StaminaScript.Name = "StaminaScript"
+StaminaScript.Parent = game.CoreGui
+
+local player = game:GetService("Players").LocalPlayer
+local runService = game:GetService("RunService")
+
+-- Function to check and update stamina
+local function updateStamina()
+    while StaminaScript.Parent do
+        local stamina
+
+        -- Try to locate the Stamina path
+        local success, err = pcall(function()
+            stamina = player:FindFirstChild("PlayerGui") and
+                      player.PlayerGui:FindFirstChild("Modules") and
+                      player.PlayerGui.Modules:FindFirstChild("Gameplay") and
+                      player.PlayerGui.Modules.Gameplay:FindFirstChild("Sprint") and
+                      player.PlayerGui.Modules.Gameplay.Sprint:FindFirstChild("Stamina")
+        end)
+
+        -- If found, update the value
+        if success and stamina and stamina:IsA("NumberValue") then
+            stamina.Value = 900000
+        end
+
+        -- Retry detection every 0.5 seconds to handle lobby/gameplay transitions
+        task.wait(0.5)
+    end
+end
+
+-- Start the stamina loop
+task.spawn(updateStamina)
+
+print("Infinite Stamina ON")
